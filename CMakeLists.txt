@@ -35,14 +35,21 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(ProjectGestures main.cpp )
+add_executable(ProjectGestures
+        main.cpp
+        drivers/vl53l0x_driver.c
+)
+
+
+pico_enable_stdio_usb(ProjectGestures 1)
+pico_enable_stdio_uart(ProjectGestures 0)
 
 pico_set_program_name(ProjectGestures "ProjectGestures")
 pico_set_program_version(ProjectGestures "0.1")
 
 # Modify the below lines to enable/disable output over UART/USB
 pico_enable_stdio_uart(ProjectGestures 0)
-pico_enable_stdio_usb(ProjectGestures 0)
+pico_enable_stdio_usb(ProjectGestures 1)
 
 # Add the standard library to the build
 target_link_libraries(ProjectGestures
@@ -51,6 +58,7 @@ target_link_libraries(ProjectGestures
 # Add the standard include files to the build
 target_include_directories(ProjectGestures PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
+        ${CMAKE_CURRENT_LIST_DIR}/drivers
 )
 
 # Add any user requested libraries
@@ -59,4 +67,3 @@ target_link_libraries(ProjectGestures
         )
 
 pico_add_extra_outputs(ProjectGestures)
-
