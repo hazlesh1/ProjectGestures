@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define HISTORY_SIZE 10  // Past samples per sensor 
+#define HISTORY_SIZE 10  
 
 
 // ===========================================================
@@ -28,6 +28,9 @@ typedef struct {
 extern "C" {
 #endif
 
+
+uint16_t history_average(const sensor_history_t *hist, uint8_t n);
+
 // Resets  history buffer
 void history_init(sensor_history_t *hist);
 
@@ -36,6 +39,7 @@ void history_push(sensor_history_t *hist, uint16_t distance_mm, uint32_t timesta
 
 // Gets the Nth most newest sample
 bool history_get(const sensor_history_t *hist, uint8_t n, sensor_sample_t *out);
+
 
 #ifdef __cplusplus
 }

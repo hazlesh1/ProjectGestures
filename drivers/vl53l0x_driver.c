@@ -144,9 +144,14 @@ uint16_t vl53l0x_read_distance(vl53l0x_sensor_t *sensor)
     i2c_write_blocking(I2C_PORT, addr, &reg, 1, true);
     i2c_read_blocking(I2C_PORT, addr, data, 2, false);
     vl53l0x_write_reg(addr, INTERRUPT_CLEAR, 0x01);
-    return ((uint16_t)data[0] << 8) | data[1];
-}
 
+    uint16_t distance = ((uint16_t)data[0] << 8) | data[1];
+    if (distance >= 8000) {
+        return VL53L0X_NOT_READY;
+    }
+
+    return distance;
+}
 
 static bool vl53l0x_poll_nonzero(uint8_t addr, uint8_t reg)
 {

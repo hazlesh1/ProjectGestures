@@ -102,28 +102,51 @@
 #include "pico/time.h"
 #include <stdio.h>
 #include "drivers/vl53l0x_driver.h"
+#include "gesture/gesture_logic.h"
 
 int main() {
     stdio_init_all();
-    sleep_ms(2000); 
+    sleep_ms(2000);
 
     vl53l0x_init_bus();
 
-    vl53l0x_sensor_t sensors[2] = {
-        {6, 0x30, 0}, 
+    vl53l0x_sensor_t sensors[SENSOR_COUNT] = {
+        {6, 0x30, 0},  
         {7, 0x31, 0},  
+        {8, 0x32, 0},  
+        {9, 0x33, 0},  
     };
 
     printf("Initializing sensors...\n");
-    bool ok = vl53l0x_init_sensors(sensors, 2);
+    bool ok = vl53l0x_init_sensors(sensors, SENSOR_COUNT);
     printf("Sensor init: %s\n", ok ? "OK" : "FAILED");
 
+    gesture_logic_init();
+
     while (true) {
-        uint16_t left = vl53l0x_read_distance(&sensors[0]);
+        uint16_t left  = vl53l0x_read_distance(&sensors[0]);
         uint16_t right = vl53l0x_read_distance(&sensors[1]);
+        uint16_t up    = vl53l0x_read_distance(&sensors[2]);
+        uint16_t down  = vl53l0x_read_distance(&sensors[3]);
+        uint32_t now_ms = to_ms_since_boot(get_absolute_time());
 
-        printf("Left: %u mm | Right: %u mm\n", left, right);
+        gesture_event_t gesture = gesture_logic_update(left, right, up, down, now_ms);
 
-        sleep_ms(100);
+        const char *label = "";
+        switch (gesture) {
+            case GESTURE_SWIPE_LEFT:  label = "SWIPE LEFT";  break;
+            case GESTURE_SWIPE_RIGHT: label = "SWIPE RIGHT"; break;
+            case GESTURE_SWIPE_UP:    label = "SWIPE UP";    break;  
+            case GESTURE_SWIPE_DOWN:  label = "SWIPE DOWN";  break; 
+            case GESTURE_HOVER:       label = "HOVER";       break;
+            default: break;
+        }
+
+        if (gesture != GESTURE_NONE) {
+            printf(">>> GESTURE: %s <<<\n", label);
+        }
+
+        // printf("Left: %u mm | Right: %u mm |    Up: %u mm | Down: %u mm \n", left, right, up, down);
+        sleep_ms(25);
     }
 }

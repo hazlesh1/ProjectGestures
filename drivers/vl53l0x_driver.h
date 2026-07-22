@@ -18,7 +18,7 @@
 #define VL53L0X_NOT_READY 0xFFFF
 
 // Number of sensors
-#define SENSOR_COUNT 2
+#define SENSOR_COUNT 4
 
 
 #ifdef __cplusplus

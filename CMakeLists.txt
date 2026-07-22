@@ -38,6 +38,8 @@ pico_sdk_init()
 add_executable(ProjectGestures
         main.cpp
         drivers/vl53l0x_driver.c
+        gesture/history.c
+        gesture/gesture_logic.c
 )
 
 
