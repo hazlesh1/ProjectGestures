@@ -1,120 +1,43 @@
-// #include "hardware/gpio.h"
-// #include "hardware/i2c.h"
-// #include "pico/stdio.h"
-// #include "pico/time.h"
-// #include <stdio.h>
-// #include "drivers/vl53l0x_driver.h"
-
-// #define I2C_PORT i2c0
-// #define I2C_SDA 4
-// #define I2C_SCL 5
-// #define XSHUT_LEFT 6
-// #define XSHUT_RIGHT 7
-// #define SENSOR_LEFT_ADDR 0x30
-// #define SENSOR_RIGHT_ADDR 0x29
-
-// void vl53l0x_set_address(uint8_t old_addr, uint8_t new_addr) {
-//   uint8_t data[2];
-
-//   data[0] = 0x8A;
-//   data[1] = new_addr;
-
-//   i2c_write_blocking(I2C_PORT, old_addr, data, 2, false);
-// }
-
-// void setup_sensors() {
-//   gpio_init(XSHUT_LEFT);
-//   gpio_set_dir(XSHUT_LEFT, GPIO_OUT);
-
-//   gpio_init(XSHUT_RIGHT);
-//   gpio_set_dir(XSHUT_RIGHT, GPIO_OUT);
-
-//   // offfff
-//   gpio_put(XSHUT_LEFT, 0);
-//   gpio_put(XSHUT_RIGHT, 0);
-
-//   sleep_ms(10);
-
-//   // on left
-//   gpio_put(XSHUT_LEFT, 1);
-
-//   sleep_ms(50);
-
-//   // change sensor address
-//   vl53l0x_set_address(0x29, SENSOR_LEFT_ADDR);
-
-//   // on right
-//   gpio_put(XSHUT_RIGHT, 1);
-
-//   sleep_ms(50);
-// }
-
-// // int main() {
-// //   stdio_init_all();
-
-// //   // I2C Initialisation. Using it at 400Khz.
-// //   i2c_init(I2C_PORT, 400 * 1000);
-
-// //   gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
-// //   gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
-// //   gpio_pull_up(I2C_SDA);
-// //   gpio_pull_up(I2C_SCL);
-
-// //   // gpio_init(XSHUT_LEFT);
-// //   // gpio_set_dir(XSHUT_LEFT, GPIO_OUT);
-
-// //   // gpio_init(XSHUT_RIGHT);
-// //   // gpio_set_dir(XSHUT_RIGHT, GPIO_OUT);
-
-// //   // gpio_put(XSHUT_LEFT, 1);
-// //   // gpio_put(XSHUT_RIGHT, 1);
-
-// //   // For more examples of I2C use see
-// //   // https://github.com/raspberrypi/pico-examples/tree/master/i2c
-// //   setup_sensors();
-
-// //   sleep_ms(2000);
-
-// //   // vl53l0x_init(SENSOR_LEFT_ADDR);
-// //   // vl53l0x_init(SENSOR_RIGHT_ADDR);
-
-// //   while (true) {
-// //     printf("Scanning...\n");
-
-// //     for (uint8_t addr = 0x08; addr < 0x77; addr++) {
-
-// //       uint8_t data;
-
-// //       int result = i2c_read_blocking(I2C_PORT, addr, &data, 1, false);
-
-// //       if (result >= 0) {
-// //         printf("Found device at 0x%02X\n", addr);
-// //       }
-// //     }
-
-// //     printf("----------------\n");
-// //     sleep_ms(3000);
-// //   }
-// // }
-
-
 #include "pico/stdlib.h"
 #include "pico/time.h"
 #include <stdio.h>
 #include "drivers/vl53l0x_driver.h"
 #include "gesture/gesture_logic.h"
+#include "hid/hid_output.h"
+
+#define SENSOR_POLL_INTERVAL_MS 25
+
+// --- Status LED pins (270 ohm resistor to GND on each) ---
+#define LED_GESTURE_FIRED_PIN 17  // red:   pulses when a real gesture is dispatched
+#define LED_CYCLE_START_PIN   16  // blue:  brief pulse at the start of each poll cycle
+#define LED_CYCLE_ACTIVE_PIN  18  // green: ON for the duration of a poll cycle, OFF between
+
+#define CYCLE_START_PULSE_MS   10  // how long blue stays lit at cycle start
+#define GESTURE_PULSE_MS      150  // how long red stays lit after a gesture fires
 
 int main() {
     stdio_init_all();
     sleep_ms(2000);
 
+    gpio_init(LED_GESTURE_FIRED_PIN);
+    gpio_set_dir(LED_GESTURE_FIRED_PIN, GPIO_OUT);
+    gpio_put(LED_GESTURE_FIRED_PIN, 0);
+
+    gpio_init(LED_CYCLE_START_PIN);
+    gpio_set_dir(LED_CYCLE_START_PIN, GPIO_OUT);
+    gpio_put(LED_CYCLE_START_PIN, 0);
+
+    gpio_init(LED_CYCLE_ACTIVE_PIN);
+    gpio_set_dir(LED_CYCLE_ACTIVE_PIN, GPIO_OUT);
+    gpio_put(LED_CYCLE_ACTIVE_PIN, 0);
+
     vl53l0x_init_bus();
 
     vl53l0x_sensor_t sensors[SENSOR_COUNT] = {
-        {6, 0x30, 0},  
-        {7, 0x31, 0},  
-        {8, 0x32, 0},  
-        {9, 0x33, 0},  
+        {6, 0x30, 0},  // left
+        {7, 0x31, 0},  // right
+        {8, 0x32, 0},  // up
+        {9, 0x33, 0},  // down
     };
 
     printf("Initializing sensors...\n");
@@ -122,31 +45,68 @@ int main() {
     printf("Sensor init: %s\n", ok ? "OK" : "FAILED");
 
     gesture_logic_init();
+    hid_output_init();
+
+    uint32_t now_ms = to_ms_since_boot(get_absolute_time());
+    uint32_t next_poll_ms       = now_ms;
+    uint32_t cycle_start_off_ms = 0;
+    uint32_t gesture_led_off_ms = 0;
 
     while (true) {
-        uint16_t left  = vl53l0x_read_distance(&sensors[0]);
-        uint16_t right = vl53l0x_read_distance(&sensors[1]);
-        uint16_t up    = vl53l0x_read_distance(&sensors[2]);
-        uint16_t down  = vl53l0x_read_distance(&sensors[3]);
-        uint32_t now_ms = to_ms_since_boot(get_absolute_time());
+        // tud_task() must run every loop iteration with nothing blocking it.
+        hid_output_task();
 
-        gesture_event_t gesture = gesture_logic_update(left, right, up, down, now_ms);
+        now_ms = to_ms_since_boot(get_absolute_time());
 
-        const char *label = "";
-        switch (gesture) {
-            case GESTURE_SWIPE_LEFT:  label = "SWIPE LEFT";  break;
-            case GESTURE_SWIPE_RIGHT: label = "SWIPE RIGHT"; break;
-            case GESTURE_SWIPE_UP:    label = "SWIPE UP";    break;  
-            case GESTURE_SWIPE_DOWN:  label = "SWIPE DOWN";  break; 
-            case GESTURE_HOVER:       label = "HOVER";       break;
-            default: break;
+        // Turn off the brief cycle-start pulse once its hold time expires.
+        if (cycle_start_off_ms != 0 && now_ms >= cycle_start_off_ms) {
+            gpio_put(LED_CYCLE_START_PIN, 0);
+            cycle_start_off_ms = 0;
         }
 
-        if (gesture != GESTURE_NONE) {
-            printf(">>> GESTURE: %s <<<\n", label);
+        // Turn off the gesture-fired pulse once its hold time expires.
+        if (gesture_led_off_ms != 0 && now_ms >= gesture_led_off_ms) {
+            gpio_put(LED_GESTURE_FIRED_PIN, 0);
+            gesture_led_off_ms = 0;
         }
 
-        // printf("Left: %u mm | Right: %u mm |    Up: %u mm | Down: %u mm \n", left, right, up, down);
-        sleep_ms(25);
+        if (now_ms >= next_poll_ms) {
+            next_poll_ms = now_ms + SENSOR_POLL_INTERVAL_MS;
+
+            // Green ON: cycle is now active.
+            gpio_put(LED_CYCLE_ACTIVE_PIN, 1);
+
+            // Blue: brief pulse marking the start of this cycle.
+            gpio_put(LED_CYCLE_START_PIN, 1);
+            cycle_start_off_ms = now_ms + CYCLE_START_PULSE_MS;
+
+            uint16_t left  = vl53l0x_read_distance(&sensors[0]);
+            uint16_t right = vl53l0x_read_distance(&sensors[1]);
+            uint16_t up    = vl53l0x_read_distance(&sensors[2]);
+            uint16_t down  = vl53l0x_read_distance(&sensors[3]);
+
+            gesture_event_t gesture = gesture_logic_update(left, right, up, down, now_ms);
+
+            if (gesture != GESTURE_NONE) {
+                const char *label = "";
+                switch (gesture) {
+                    case GESTURE_SWIPE_LEFT:  label = "SWIPE LEFT";  break;
+                    case GESTURE_SWIPE_RIGHT: label = "SWIPE RIGHT"; break;
+                    case GESTURE_SWIPE_UP:    label = "SWIPE UP";    break;
+                    case GESTURE_SWIPE_DOWN:  label = "SWIPE DOWN"; break;
+                    case GESTURE_HOVER:       label = "HOVER";       break;
+                    default: break;
+                }
+                printf(">>> GESTURE: %s <<<\n", label);
+                hid_output_dispatch(gesture);
+
+                // Red: pulse marking a real gesture dispatch.
+                gpio_put(LED_GESTURE_FIRED_PIN, 1);
+                gesture_led_off_ms = now_ms + GESTURE_PULSE_MS;
+            }
+
+            // Green OFF: cycle work is done for this iteration.
+            gpio_put(LED_CYCLE_ACTIVE_PIN, 0);
+        }
     }
 }
