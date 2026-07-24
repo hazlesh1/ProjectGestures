@@ -8,9 +8,6 @@
 #define HID_PROFILE_MEDIA   1
 #define HID_PROFILE_PAGING  2
 
-#define HID_KEY_HOLD_MS 10
-#define HID_RELEASE_RETRY_TIMEOUT_MS 200
-
 typedef struct {
     const char *log_name;
     bool (*send_gesture)(gesture_event_t ev);

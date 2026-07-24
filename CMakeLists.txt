@@ -17,6 +17,23 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 
+# pico-vscode.cmake sets PICO_TOOLCHAIN_PATH but does not derive the actual
+# CMAKE_C_COMPILER / CMAKE_CXX_COMPILER paths from it before project() runs,
+# which is what CMake needs at that point. Set them explicitly here so
+# project() below can find the toolchain (fixes "No CMAKE_C_COMPILER could
+# be found" when the ambient PATH doesn't already contain arm-none-eabi-gcc).
+if (DEFINED PICO_TOOLCHAIN_PATH)
+    if (WIN32)
+        set(CMAKE_C_COMPILER   "${PICO_TOOLCHAIN_PATH}/bin/arm-none-eabi-gcc.exe")
+        set(CMAKE_CXX_COMPILER "${PICO_TOOLCHAIN_PATH}/bin/arm-none-eabi-g++.exe")
+        set(CMAKE_ASM_COMPILER "${PICO_TOOLCHAIN_PATH}/bin/arm-none-eabi-gcc.exe")
+    else()
+        set(CMAKE_C_COMPILER   "${PICO_TOOLCHAIN_PATH}/bin/arm-none-eabi-gcc")
+        set(CMAKE_CXX_COMPILER "${PICO_TOOLCHAIN_PATH}/bin/arm-none-eabi-g++")
+        set(CMAKE_ASM_COMPILER "${PICO_TOOLCHAIN_PATH}/bin/arm-none-eabi-gcc")
+    endif()
+endif()
+
 set(PICO_BOARD pico CACHE STRING "Board type")
 
 include(pico_sdk_import.cmake)
@@ -36,6 +53,7 @@ add_executable(ProjectGestures
         gesture/gesture_logic.c
         hid/hid_output.c
         usb_descriptors.c
+        usb_cdc_stdio.c
 )
 
 if(HID_PROFILE EQUAL 1)

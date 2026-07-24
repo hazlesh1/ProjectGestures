@@ -125,10 +125,6 @@
 //     return result;
 // }
 
-// ============================================================================
-// ACTIVE 2-SENSOR (LEFT/RIGHT) CODE — REPLACED BY 4-SENSOR REWRITE BELOW
-// Per rules: "If you change code. do not remove it. Comment it out."
-// ============================================================================
 /*
 #include "gesture_logic.h"
 #include "history.h"
@@ -266,7 +262,7 @@ gesture_event_t gesture_logic_update(uint16_t leftMm, uint16_t rightMm, uint32_t
 #define MIN_OVERLAP_MS            60
 #define DEPTH_MATCH_TOLERANCE     200
 #define HOVER_DURATION_MS         1500 
-#define HOVER_VARIANCE_MAX_MM     40    
+#define HOVER_VARIANCE_MAX_MM     150   
 #define AXIS_TIMEOUT_MS           600   
 
 typedef enum {
@@ -482,16 +478,24 @@ gesture_event_t gesture_logic_update(uint16_t leftMm, uint16_t rightMm,
     if (!horiz_owned) { rU = update_sensor(&st_u, aU, nowMs);
                         rD = update_sensor(&st_d, aD, nowMs); }
 
-    bool L = horiz_owned ? false : st_l.was_in_zone;
-    bool R = horiz_owned ? false : st_r.was_in_zone;
-    bool U = vert_owned  ? false : st_u.was_in_zone;
-    bool D = vert_owned  ? false : st_d.was_in_zone;
+    bool hoverL = inZone(aL);
+    bool hoverR = inZone(aR);
+    bool hoverU = inZone(aU);
+    bool hoverD = inZone(aD);
 
-    if (L && R && U && D) {
+    static uint32_t last_hover_debug_ms = 0;
+    if (nowMs - last_hover_debug_ms > 500) {
+        last_hover_debug_ms = nowMs;
+        printf("[DEBUG] HOVER CHECK: hoverL=%d hoverR=%d hoverU=%d hoverD=%d (aL=%u aR=%u aU=%u aD=%u)\n",
+               hoverL, hoverR, hoverU, hoverD, aL, aR, aU, aD);
+    }
+
+    if (hoverL && hoverR && hoverU && hoverD) {
         uint16_t mn = aL, mx = aL;
         if (aR < mn) mn = aR; if (aR > mx) mx = aR;
         if (aU < mn) mn = aU; if (aU > mx) mx = aU;
         if (aD < mn) mn = aD; if (aD > mx) mx = aD;
+        printf("[DEBUG] HOVER: all 4 in zone, variance=%u (max=%u)\n", (unsigned)(mx - mn), HOVER_VARIANCE_MAX_MM);
         if ((mx - mn) <= HOVER_VARIANCE_MAX_MM) {
             if (!hover_active) { hover_start_ms = nowMs; hover_active = true; }
             if (!hover_fired && (nowMs - hover_start_ms) >= HOVER_DURATION_MS) {
@@ -548,3 +552,4 @@ gesture_event_t gesture_logic_update(uint16_t leftMm, uint16_t rightMm,
     if (swipe != GESTURE_NONE) last_gesture_ms = nowMs;
     return swipe;
 }
+ 
