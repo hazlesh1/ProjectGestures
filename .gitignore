@@ -1,0 +1,41 @@
+# Build output
+build/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+CTestTestfile.cmake
+Makefile
+
+# Ninja
+*.ninja
+.ninja_*
+
+# Generated binaries
+*.elf
+*.hex
+*.bin
+*.uf2
+*.map
+
+# VS Code
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.o
+*.obj
+*.a
+*.so
+*.dll
+*.exe
+*.out
+*.log
