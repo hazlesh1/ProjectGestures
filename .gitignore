@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Build output
 build/
 
@@ -39,3 +40,7 @@ Thumbs.db
 *.exe
 *.out
 *.log
+=======
+build
+!.vscode/*
+>>>>>>> e0f4b9cb46bef5565f91a6fe1d71ae4d012c71e8

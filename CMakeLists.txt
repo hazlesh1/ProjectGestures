@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # == DO NOT EDIT THE FOLLOWING LINES for the Raspberry Pi Pico VS Code Extension to work ==
 if(WIN32)
     set(USERHOME $ENV{USERPROFILE})
@@ -12,6 +13,8 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
+=======
+>>>>>>> e0f4b9cb46bef5565f91a6fe1d71ae4d012c71e8
 cmake_minimum_required(VERSION 3.13)
 
 set(CMAKE_C_STANDARD 11)
