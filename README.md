@@ -4,6 +4,12 @@ This project is a mid-air gesture controller built on a Raspberry Pi Pico (RP204
 
 ---
 
+## DEMO
+
+<p align="center">
+  <img src="media/video_20260729_174929.gif" width="800">
+</p>
+
 ## Overview
 
 This project is an air gesture media/navigation controller. An array of four IR tof sensors (VL53L0X) surrounds a sensing zone. When a hand swipes through the zone in a given direction (one sensor into another in a specific direction), or hovers in the center (all four sensors), the firmware recognizes the gesture and sends a USB HID report; appearing to the host as a real keyboard or consumer device, with no external drivers or background software required.
