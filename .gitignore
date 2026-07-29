@@ -21,10 +21,7 @@ Makefile
 *.map
 
 # VS Code
-.vscode/*
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+vscode/
 
 # OS files
 .DS_Store
