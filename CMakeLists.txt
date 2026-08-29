@@ -34,9 +34,6 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 
-# pico-vscode.cmake sets PICO_TOOLCHAIN_PATH but does not derive the actual
-# CMAKE_C_COMPILER / CMAKE_CXX_COMPILER paths from it before project() runs,
-# which is what CMake needs at that point. Set them explicitly here so
 # project() below can find the toolchain (fixes "No CMAKE_C_COMPILER could
 # be found" when the ambient PATH doesn't already contain arm-none-eabi-gcc).
 if (DEFINED PICO_TOOLCHAIN_PATH)
