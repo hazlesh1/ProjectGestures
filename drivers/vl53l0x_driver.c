@@ -6,7 +6,7 @@
 #define VL53L0X_IO_TIMEOUT_MS 100
 
 // Used: Documentation, Pololu VL53L0X Arduino C++ library (THANKS GUYS, some things are directly translated), VScode to fix syntax errors
-// Configs, tuning and some calibrations are copied from the documentation, so if it's not working, I'm blaming the docs LMAO 
+// Configs, tuning and some calibrations are copied from the documentation.
 // Apologies for the comments, I was in a lot of pain trying to understand this sensor
 
 // MAGIC NUMBERS, NAMED BECAUSE WANDERING AROUND THE DOCUMENTATION PAGE WONDERING WHAT 0x83 MEANS IS NOT THE HAPPIEST DAYS
